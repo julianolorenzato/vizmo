@@ -1,0 +1,22 @@
+services:
+  web:
+    build:
+      ./web
+    ports:
+      - "80:80"
+  delivery:
+    build:
+      ./delivery
+    volumes:
+      - media
+    ports:
+      - "3000:80"
+  processing:
+    build:
+      ./processing
+    volumes:
+      - media
+    ports:
+      - "3001:80"
+volumes:
+  media:
