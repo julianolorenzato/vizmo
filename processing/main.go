@@ -1,38 +1,52 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"github.com/gofiber/fiber/v2"
+	"github.com/redis/go-redis/v9"
+	"log"
 	"os"
 	"os/exec"
 	"strconv"
 )
 
+var redisClient *redis.Client
+
+func init() {
+	rdC := redis.NewClient(&redis.Options{
+		Addr:     "queue:6379",
+		Password: "",
+		DB:       0,
+	})
+
+	pong, err := rdC.Ping(context.Background()).Result()
+	if err != nil {
+		log.Fatal("Redis connection failed. ", err)
+	}
+
+	log.Println("Redis successfully connected. Ping:", pong)
+
+	redisClient = rdC
+}
+
 func main() {
-	app := fiber.New(fiber.Config{
-		BodyLimit:         4 * 1024 * 1024,
-		StreamRequestBody: true,
-	})
+	pubsub := redisClient.Subscribe(context.Background(), "hls")
 
-	app.Post("/upload", func(ctx *fiber.Ctx) error {
-		file, err := ctx.FormFile("video")
+	for {
+		msg, err := pubsub.ReceiveMessage(context.Background())
 		if err != nil {
-			return err
+			panic(err)
 		}
 
-		fmt.Println(file.Header)
+		log.Printf("[New message in channel (%s)]: %s", msg.Channel, msg.Payload)
 
-		src := fmt.Sprintf("./temp/%s", file.Filename)
-
-		err = ctx.SaveFile(file, src)
-		if err != nil {
-			return err
+		if msg.Channel == "hls" {
+			err := CreateHLS(msg.Payload, msg.Payload, 5)
+			if err != nil {
+				panic(err)
+			}
 		}
-
-		return CreateHLS(src, "./hls/", 5)
-	})
-
-	app.Listen(":3001")
+	}
 }
 
 func CreateHLS(inputFile string, outputDir string, segmentDuration int) error {

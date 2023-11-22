@@ -1,22 +1,33 @@
 services:
+  queue:
+    image: redis:latest
+
   web:
     build:
       ./web
     ports:
-      - "80:80"
+      - 80:80
+    depends_on:
+      - delivery
+      - processing
+
   delivery:
     build:
       ./delivery
     volumes:
-      - media
+      - videos-vol:/videos
     ports:
-      - "3000:80"
+      - 3000:80
+    depends_on:
+      - queue
+
   processing:
     build:
       ./processing
     volumes:
-      - media
-    ports:
-      - "3001:80"
+      - videos-vol:/videos
+    depends_on:
+      - queue
+
 volumes:
-  media:
+  videos-vol:
