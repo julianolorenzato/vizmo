@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/redis/go-redis/v9"
 	"io"
@@ -38,6 +39,7 @@ func main() {
 		StreamRequestBody: true,
 	})
 
+	app.Use(cors.New())
 	app.Use(logger.New())
 
 	app.Static("/videos", "/videos/hls")
@@ -97,6 +99,12 @@ func saveVideo(filename string, video io.Reader) error {
 	path := fmt.Sprintf("/videos/raw/%s", filename)
 
 	file, err := os.Create(path)
+	defer func() {
+		err := file.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
 	if err != nil {
 		return err
 	}

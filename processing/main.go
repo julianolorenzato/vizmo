@@ -41,31 +41,30 @@ func main() {
 		log.Printf("[New message in channel (%s)]: %s", msg.Channel, msg.Payload)
 
 		if msg.Channel == "hls" {
-			inputFile := fmt.Sprintf("/videos/raw/%s", msg.Payload)
-			outputDir := fmt.Sprintf("/videos/hls/%s", msg.Payload)
-
-			go CreateHLS(inputFile, outputDir, 5)
+			go CreateHLS(msg.Payload, msg.Payload, 5)
 		}
 	}
 }
 
 func CreateHLS(inputFile string, outputDir string, segmentDuration int) {
-	err := os.MkdirAll(outputDir, 0755)
+	outputPath := fmt.Sprintf("/videos/hls/%s", outputDir)
+	inputPath := fmt.Sprintf("/videos/raw/%s", inputFile)
 
+	err := os.MkdirAll(outputPath, 0755)
 	if err != nil {
 		panic(fmt.Errorf("failed to create output directory: %v", err))
 	}
 
 	ffmpegCmd := exec.Command(
 		"ffmpeg",
-		"-i", inputFile,
+		"-i", inputPath,
 		"-profile:v", "baseline",
 		"-level", "3.0",
 		"-start_number", "0", // start numbering segments from 0
 		"-hls_time", strconv.Itoa(segmentDuration), // duration of each segment in seconds
 		"-hls_list_size", "0", // keep all segments in the playlist
 		"-f", "hls",
-		fmt.Sprintf("%s/playlist.m3u8", outputDir),
+		fmt.Sprintf("%s/playlist.m3u8", outputPath),
 	)
 
 	output, err := ffmpegCmd.CombinedOutput()
