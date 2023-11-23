@@ -41,19 +41,19 @@ func main() {
 		log.Printf("[New message in channel (%s)]: %s", msg.Channel, msg.Payload)
 
 		if msg.Channel == "hls" {
-			err := CreateHLS(msg.Payload, msg.Payload, 5)
-			if err != nil {
-				panic(err)
-			}
+			inputFile := fmt.Sprintf("/videos/raw/%s", msg.Payload)
+			outputDir := fmt.Sprintf("/videos/hls/%s", msg.Payload)
+
+			go CreateHLS(inputFile, outputDir, 5)
 		}
 	}
 }
 
-func CreateHLS(inputFile string, outputDir string, segmentDuration int) error {
+func CreateHLS(inputFile string, outputDir string, segmentDuration int) {
 	err := os.MkdirAll(outputDir, 0755)
 
 	if err != nil {
-		return fmt.Errorf("failed to create output directory: %v", err)
+		panic(fmt.Errorf("failed to create output directory: %v", err))
 	}
 
 	ffmpegCmd := exec.Command(
@@ -70,8 +70,6 @@ func CreateHLS(inputFile string, outputDir string, segmentDuration int) error {
 
 	output, err := ffmpegCmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("failed to create HLS: %v\nOutput: %s", err, output)
+		panic(fmt.Errorf("failed to create HLS: %v\nOutput: %s", err, output))
 	}
-
-	return nil
 }
